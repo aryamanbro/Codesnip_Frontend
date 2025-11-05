@@ -1,0 +1,52 @@
+/* 1. Import Tailwind */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 2. Set the global theme in the 'base' layer */
+@layer base {
+  body {
+    /* Use theme() to access your config values */
+    background-image: linear-gradient(
+      to bottom right,
+      theme('colors.brand-gray.100'),
+      theme('colors.black')
+    );
+    color: theme('colors.gray.200');
+    font-family: theme('fontFamily.sans');
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+  }
+}
+
+/* 3. Create our "glass" component style in the 'components' layer */
+@layer components {
+  .glass-card {
+    /* Manually apply the color + opacity from your theme.
+      This is the direct fix for the error.
+    */
+    background-color: theme('colors.brand-gray.200 / 50%');
+
+    /* These utilities are fine, so we can @apply them */
+    @apply backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl;
+  }
+
+  /* Style scrollbars 
+    We must use theme() for all custom colors here too.
+  */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background-color: theme('colors.brand-gray.100');
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: theme('colors.brand-gray.300');
+    @apply rounded-md; /* This utility is fine */
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: theme('colors.brand-blue.DEFAULT');
+  }
+}
