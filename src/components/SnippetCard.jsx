@@ -54,9 +54,9 @@ function SnippetCard({ snippet, onEdit, onDelete, viewMode = 'grid' }) {
           <span 
             className="text-xs font-medium px-2.5 py-0.5 rounded-full uppercase"
             style={{ 
-              backgroundColor: `${langColor}30`, // 30% opacity
-              color: langColor,
-              border: `1px solid ${langColor}80` // 50% opacity border
+              backgroundColor: 'rgba(0, 0, 0, 0.4)', // A dark, glassy background
+              color: langColor,                     // The bright language color
+              border: `1px solid ${langColor}90`     // A solid border of that color
             }}
           >
             {snippet.language}
