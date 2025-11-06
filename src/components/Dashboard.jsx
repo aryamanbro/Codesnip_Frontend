@@ -1,13 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Plus, Globe, LayoutGrid } from 'lucide-react'; // 1. Import Globe
 import { motion } from 'framer-motion';
 import AppNavbar from './AppNavbar';
 import SnippetCard from './SnippetCard';
 import SnippetModal from './SnippetModal';
 import Button from '../ui/Button';
-import ViewToggle from './ViewToggle';
-import SnippetCarousel from './SnippetCarousel'; // Use the new 3D carousel
+// 2. We don't need ViewToggle, we'll build it in here
+import InfiniteMenu from './InfiniteMenu'; // 3. Import the new globe
 import { getSnippets, createSnippet, updateSnippet, deleteSnippet } from '../api';
+
+// A generic image for the globe.
+// We can't screenshot our components, so we use a placeholder.
+const PLACEHOLDER_IMAGE = 'https://picsum.photos/512/512?grayscale&blur=2';
 
 function Dashboard({ user, onLogout }) {
   const [snippets, setSnippets] = useState([]);
@@ -15,11 +19,9 @@ function Dashboard({ user, onLogout }) {
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingSnippet, setEditingSnippet] = useState(null);
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'scroll'
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'globe'
 
   // ... (All other functions: loadSnippets, handleOpenCreate, etc. are THE SAME)
-  // ... (No changes to handleSave or handleDelete either)
-
   const loadSnippets = async () => {
     try {
       setLoading(true); setError('');
@@ -57,6 +59,23 @@ function Dashboard({ user, onLogout }) {
     }
   };
 
+  // --- 4. NEW: This function opens our modal from the globe click ---
+  const handleGlobeClick = (snippet) => {
+    setEditingSnippet(snippet);
+    setShowModal(true);
+  };
+
+  // --- 5. NEW: This transforms our snippets into the 'items' prop ---
+  const menuItems = useMemo(() => {
+    return snippets.map(snippet => ({
+      image: PLACEHOLDER_IMAGE, // All items get the placeholder
+      title: snippet.title,
+      description: snippet.language,
+      originalSnippet: snippet, // <-- We attach the REAL snippet data
+    }));
+  }, [snippets]);
+
+
   // This function decides which layout to render
   const renderSnippets = () => {
     if (loading) {
@@ -92,17 +111,41 @@ function Dashboard({ user, onLogout }) {
       );
     }
 
-    // Render Scroll View
-    if (viewMode === 'scroll') {
-      // 2. USE THE NEW COMPONENT HERE
+    // Render Globe View
+    if (viewMode === 'globe') {
       return (
-        <SnippetCarousel
-          snippets={snippets}
-          onEdit={handleOpenEdit}
-          onDelete={handleDelete}
-        />
+        <div className="w-full h-[600px]">
+          <InfiniteMenu 
+            items={menuItems} 
+            onItemClick={handleGlobeClick} // <-- Pass our click handler
+          />
+        </div>
       );
     }
+  };
+
+  // --- 6. NEW: ViewToggle is now part of the Dashboard ---
+  const ViewToggle = () => {
+    const baseStyle = "p-2 rounded-md transition-colors";
+    const activeStyle = "bg-brand-blue/30 text-brand-blue-light";
+    const inactiveStyle = "text-gray-500 hover:text-gray-300 hover:bg-white/10";
+    
+    return (
+      <div className="flex items-center gap-2 p-1 rounded-lg bg-black/30 border border-white/10">
+        <button
+          onClick={() => setViewMode('grid')}
+          className={`${baseStyle} ${viewMode === 'grid' ? activeStyle : inactiveStyle}`}
+        >
+          <LayoutGrid size={20} />
+        </button>
+        <button
+          onClick={() => setViewMode('globe')}
+          className={`${baseStyle} ${viewMode === 'globe' ? activeStyle : inactiveStyle}`}
+        >
+          <Globe size={20} />
+        </button>
+      </div>
+    );
   };
 
   return (
@@ -112,7 +155,7 @@ function Dashboard({ user, onLogout }) {
         <div className="flex flex-col md:flex-row justify-between md:items-center mb-8 gap-4">
           <h1 className="text-3xl font-bold text-white">Your Snippets</h1>
           <div className="flex items-center gap-4">
-            <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
+            <ViewToggle />
             <Button variant="primary" onClick={handleOpenCreate}>
               <Plus size={18} className="mr-2" />
               New Snippet

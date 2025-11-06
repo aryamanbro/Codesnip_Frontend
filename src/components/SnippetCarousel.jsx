@@ -3,8 +3,8 @@ import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import SnippetCard from './SnippetCard';
 
-const CARD_WIDTH = 320; // Width of our scroll cards in px
-const CARD_GAP = 24; // Gap in px
+const CARD_WIDTH = 320; 
+const CARD_GAP = 24; 
 
 function SnippetCarousel({ snippets, onEdit, onDelete }) {
   const [index, setIndex] = useState(0);
