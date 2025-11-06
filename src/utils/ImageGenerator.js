@@ -1,9 +1,9 @@
 
-const languageColors = {
-  python: '#0072ff',
+export const languageColors = {
+  python: '#68217A',
   javascript: '#f7df1e',
-  java: '#f89820',
-  csharp: '#68217A',
+  java: '#0072ff',
+  csharp: '#f89820',
   ruby: '#CC342D',
   default: '#5a5a6e',
 };

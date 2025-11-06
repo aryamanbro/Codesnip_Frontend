@@ -2,27 +2,23 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { atomOneDark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
-// 1. Import the new icons
 import { Edit2, Trash2, Copy, Check } from 'lucide-react';
 import Button from '../ui/Button';
+import { languageColors } from '../utils/ImageGenerator'; // <-- 1. IMPORT COLORS
 
-// Accept viewMode prop
 function SnippetCard({ snippet, onEdit, onDelete, viewMode = 'grid' }) {
-  // 2. Add state for copy feedback
   const [isCopied, setIsCopied] = useState(false);
 
-  // Define styles based on viewMode
   const cardClasses =
     viewMode === 'grid'
-      ? 'flex-col h-full' // Grid style
-      : 'flex-col w-[320px] h-[480px] flex-shrink-0'; // Scroll style
+      ? 'flex-col h-full'
+      : 'flex-col w-[320px] h-[480px] flex-shrink-0';
 
   const highlighterMaxHeight =
     viewMode === 'grid'
       ? '300px'
-      : '320px'; // Taller for scroll card
+      : '320px';
 
-  // Define motion props based on viewMode
   const motionProps =
     viewMode === 'grid'
       ? {
@@ -32,13 +28,16 @@ function SnippetCard({ snippet, onEdit, onDelete, viewMode = 'grid' }) {
         }
       : {};
 
-  // 3. Create the copy function
   const handleCopy = () => {
     navigator.clipboard.writeText(snippet.code).then(() => {
       setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000); // Reset after 2 seconds
+      setTimeout(() => setIsCopied(false), 2000);
     });
   };
+
+  // --- 2. GET THE COLOR FOR THIS SNIPPET ---
+  const langColor =
+    languageColors[snippet.language.toLowerCase()] || languageColors.default;
 
   return (
     <motion.div
@@ -50,7 +49,16 @@ function SnippetCard({ snippet, onEdit, onDelete, viewMode = 'grid' }) {
           <h3 className="text-xl font-semibold text-white truncate">
             {snippet.title}
           </h3>
-          <span className="bg-brand-blue/20 text-brand-blue-light text-xs font-medium px-2.5 py-0.5 rounded-full uppercase">
+          
+          {/* --- 3. APPLY THE DYNAMIC COLOR --- */}
+          <span 
+            className="text-xs font-medium px-2.5 py-0.5 rounded-full uppercase"
+            style={{ 
+              backgroundColor: `${langColor}30`, // 30% opacity
+              color: langColor,
+              border: `1px solid ${langColor}80` // 50% opacity border
+            }}
+          >
             {snippet.language}
           </span>
         </div>
@@ -58,7 +66,7 @@ function SnippetCard({ snippet, onEdit, onDelete, viewMode = 'grid' }) {
       
       <div className="text-sm font-mono overflow-hidden">
         <SyntaxHighlighter
-          language={snippet.language}
+          language={snippet.language.toLowerCase()}
           style={atomOneDark}
           customStyle={{
             background: 'rgba(0, 0, 0, 0.3)',
@@ -76,13 +84,12 @@ function SnippetCard({ snippet, onEdit, onDelete, viewMode = 'grid' }) {
         </SyntaxHighlighter>
       </div>
 
-      {/* 4. Update the footer with the new button */}
       <div className="flex justify-end gap-3 p-4 mt-auto border-t border-white/10">
         <Button
           variant={isCopied ? 'primary' : 'secondary'}
           onClick={handleCopy}
           disabled={isCopied}
-          className="!px-2.5" // Make button a bit wider for text
+          className="!px-2.5"
         >
           {isCopied ? (
             <Check size={16} />
