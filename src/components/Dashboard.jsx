@@ -1,17 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Globe, LayoutGrid } from 'lucide-react'; // 1. Import Globe
+import { Plus, Globe, LayoutGrid } from 'lucide-react';
 import { motion } from 'framer-motion';
 import AppNavbar from './AppNavbar';
 import SnippetCard from './SnippetCard';
 import SnippetModal from './SnippetModal';
 import Button from '../ui/Button';
-// 2. We don't need ViewToggle, we'll build it in here
-import InfiniteMenu from './InfiniteMenu'; // 3. Import the new globe
+import InfiniteMenu from './InfiniteMenu';
 import { getSnippets, createSnippet, updateSnippet, deleteSnippet } from '../api';
-
-// A generic image for the globe.
-// We can't screenshot our components, so we use a placeholder.
-const PLACEHOLDER_IMAGE = 'https://picsum.photos/512/512?grayscale&blur=2';
+import { generateSnippetImage } from '../utils/imageGenerator'; // <-- 1. IMPORT THE GENERATOR
 
 function Dashboard({ user, onLogout }) {
   const [snippets, setSnippets] = useState([]);
@@ -19,7 +15,7 @@ function Dashboard({ user, onLogout }) {
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingSnippet, setEditingSnippet] = useState(null);
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'globe'
+  const [viewMode, setViewMode] = useState('grid'); 
 
   // ... (All other functions: loadSnippets, handleOpenCreate, etc. are THE SAME)
   const loadSnippets = async () => {
@@ -58,22 +54,21 @@ function Dashboard({ user, onLogout }) {
       } catch (err) { setError('Failed to delete snippet.'); }
     }
   };
-
-  // --- 4. NEW: This function opens our modal from the globe click ---
   const handleGlobeClick = (snippet) => {
     setEditingSnippet(snippet);
     setShowModal(true);
   };
 
-  // --- 5. NEW: This transforms our snippets into the 'items' prop ---
+  // --- 2. THIS IS THE CRITICAL CHANGE ---
+  // We now use the generator to create a unique image for each snippet
   const menuItems = useMemo(() => {
     return snippets.map(snippet => ({
-      image: PLACEHOLDER_IMAGE, // All items get the placeholder
+      image: generateSnippetImage(snippet.title, snippet.language), // <-- USE THE GENERATOR
       title: snippet.title,
       description: snippet.language,
-      originalSnippet: snippet, // <-- We attach the REAL snippet data
+      originalSnippet: snippet, 
     }));
-  }, [snippets]);
+  }, [snippets]); // This will re-generate when snippets change
 
 
   // This function decides which layout to render
@@ -117,14 +112,13 @@ function Dashboard({ user, onLogout }) {
         <div className="w-full h-[600px]">
           <InfiniteMenu 
             items={menuItems} 
-            onItemClick={handleGlobeClick} // <-- Pass our click handler
+            onItemClick={handleGlobeClick} 
           />
         </div>
       );
     }
   };
 
-  // --- 6. NEW: ViewToggle is now part of the Dashboard ---
   const ViewToggle = () => {
     const baseStyle = "p-2 rounded-md transition-colors";
     const activeStyle = "bg-brand-blue/30 text-brand-blue-light";
