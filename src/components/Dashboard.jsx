@@ -7,7 +7,7 @@ import SnippetModal from './SnippetModal';
 import Button from '../ui/Button';
 import InfiniteMenu from './InfiniteMenu';
 import { getSnippets, createSnippet, updateSnippet, deleteSnippet } from '../api';
-import { generateSnippetImage } from '../utils/imageGenerator'; // <-- 1. IMPORT THE GENERATOR
+import { generateSnippetImage } from '../utils/ImageGenerator'; // <-- 1. IMPORT THE GENERATOR
 
 function Dashboard({ user, onLogout }) {
   const [snippets, setSnippets] = useState([]);
