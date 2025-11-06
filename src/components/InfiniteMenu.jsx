@@ -1,11 +1,73 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { mat4, quat, vec2, vec3 } from 'gl-matrix';
-import './InfiniteMenu.css'; // We will create this next
+import './InfiniteMenu.css'; // Make sure this CSS file exists
 
 // --- All the WebGL code from reactbits.dev ---
-// (This is the long code you pasted, from "Face" to "InfiniteGridMenu")
-// ... (I'm omitting the 500+ lines of WebGL code here for brevity, 
-//      but you should paste the FULL <script> content from reactbits.dev)
+
+const discVertShaderSource = `#version 300 es
+uniform mat4 uWorldMatrix;
+uniform mat4 uViewMatrix;
+uniform mat4 uProjectionMatrix;
+uniform vec3 uCameraPosition;
+uniform vec4 uRotationAxisVelocity;
+in vec3 aModelPosition;
+in vec3 aModelNormal;
+in vec2 aModelUvs;
+in mat4 aInstanceMatrix;
+out vec2 vUvs;
+out float vAlpha;
+flat out int vInstanceId;
+#define PI 3.141593
+void main() {
+    vec4 worldPosition = uWorldMatrix * aInstanceMatrix * vec4(aModelPosition, 1.);
+    vec3 centerPos = (uWorldMatrix * aInstanceMatrix * vec4(0., 0., 0., 1.)).xyz;
+    float radius = length(centerPos.xyz);
+    if (gl_VertexID > 0) {
+        vec3 rotationAxis = uRotationAxisVelocity.xyz;
+        float rotationVelocity = min(.15, uRotationAxisVelocity.w * 15.);
+        vec3 stretchDir = normalize(cross(centerPos, rotationAxis));
+        vec3 relativeVertexPos = normalize(worldPosition.xyz - centerPos);
+        float strength = dot(stretchDir, relativeVertexPos);
+        float invAbsStrength = min(0., abs(strength) - 1.);
+        strength = rotationVelocity * sign(strength) * abs(invAbsStrength * invAbsStrength * invAbsStrength + 1.);
+        worldPosition.xyz += stretchDir * strength;
+    }
+    worldPosition.xyz = radius * normalize(worldPosition.xyz);
+    gl_Position = uProjectionMatrix * uViewMatrix * worldPosition;
+    vAlpha = smoothstep(0.5, 1., normalize(worldPosition.xyz).z) * .9 + .1;
+    vUvs = aModelUvs;
+    vInstanceId = gl_InstanceID;
+}`;
+
+const discFragShaderSource = `#version 300 es
+precision highp float;
+uniform sampler2D uTex;
+uniform int uItemCount;
+uniform int uAtlasSize;
+out vec4 outColor;
+in vec2 vUvs;
+in float vAlpha;
+flat in int vInstanceId;
+void main() {
+    int itemIndex = vInstanceId % uItemCount;
+    int cellsPerRow = uAtlasSize;
+    int cellX = itemIndex % cellsPerRow;
+    int cellY = itemIndex / cellsPerRow;
+    vec2 cellSize = vec2(1.0) / vec2(float(cellsPerRow));
+    vec2 cellOffset = vec2(float(cellX), float(cellY)) * cellSize;
+    ivec2 texSize = textureSize(uTex, 0);
+    float imageAspect = float(texSize.x) / float(texSize.y);
+    float containerAspect = 1.0;
+    float scale = max(imageAspect / containerAspect,
+                      containerAspect / imageAspect);
+    vec2 st = vec2(vUvs.x, 1.0 - vUvs.y);
+    st = (st - 0.5) * scale + 0.5;
+    st = clamp(st, 0.0, 1.0);
+    st = st * cellSize + cellOffset;
+    outColor = texture(uTex, st);
+    outColor.a *= vAlpha;
+}`;
+
 class Face {
   constructor(a, b, c) {
     this.a = a;
@@ -609,50 +671,48 @@ class InfiniteGridMenu {
     return vec3.transformQuat(vec3.create(), nearestVertexPos, this.control.orientation);
   }
 }
-// --- END OF WEBGL CODE ---
 
+// --- React Component ---
 
-// This is the default React component from reactbits.dev
-// We will modify this component.
 const defaultItems = [
   {
-    image: 'https://picsum.photos/900/900?grayscale',
+    image: 'https-://picsum.photos/900/900?grayscale',
     link: 'https://google.com/',
-    title: '',
-    description: ''
+    title: 'Loading...',
+    description: 'Please add a snippet to your vault.'
   }
 ];
 
-// --- **** OUR MODIFIED COMPONENT **** ---
 export default function InfiniteMenu({ items = [], onItemClick }) {
   const canvasRef = useRef(null);
   const [activeItem, setActiveItem] = useState(null);
   const [isMoving, setIsMoving] = useState(false);
+  const [sketch, setSketch] = useState(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    let sketch;
+    let localSketch;
 
     const handleActiveItem = index => {
-      // The 3D globe might have more "discs" than we have items
-      // so we use modulo (%) to loop back and find the correct item
-      const itemIndex = index % items.length;
-      setActiveItem(items[itemIndex]);
+      const itemsList = items.length ? items : defaultItems;
+      const itemIndex = index % itemsList.length;
+      setActiveItem(itemsList[itemIndex]);
     };
 
-    if (canvas) {
-      sketch = new InfiniteGridMenu(
+    if (canvas && !sketch) { // Only init if canvas is ready and no sketch exists
+      localSketch = new InfiniteGridMenu(
         canvas, 
         items.length ? items : defaultItems, 
         handleActiveItem, 
         setIsMoving, 
         sk => sk.run()
       );
+      setSketch(localSketch);
     }
 
     const handleResize = () => {
-      if (sketch) {
-        sketch.resize();
+      if (localSketch) {
+        localSketch.resize();
       }
     };
     window.addEventListener('resize', handleResize);
@@ -660,15 +720,12 @@ export default function InfiniteMenu({ items = [], onItemClick }) {
     
     return () => {
       window.removeEventListener('resize', handleResize);
-      // Clean up the sketch if needed (depends on the full WebGL code)
+      // Clean up logic if needed
     };
-  }, [items]);
+  }, [items, sketch]); // Rerun effect if items change
 
-  // --- **** THIS IS THE CRITICAL CHANGE **** ---
-  // Instead of opening a link, we call our new prop
-  // which will open our SnippetModal
   const handleButtonClick = () => {
-    if (activeItem) {
+    if (activeItem && activeItem.originalSnippet) {
       onItemClick(activeItem.originalSnippet);
     }
   };
