@@ -6,7 +6,7 @@ import SnippetCard from './SnippetCard';
 import SnippetModal from './SnippetModal';
 import Button from '../ui/Button';
 import ViewToggle from './ViewToggle';
-import InfiniteSnippetScroll from './InfiniteSnippetScroll';
+import SnippetCarousel from './SnippetCarousel'; // Use the new 3D carousel
 import { getSnippets, createSnippet, updateSnippet, deleteSnippet } from '../api';
 
 function Dashboard({ user, onLogout }) {
@@ -17,73 +17,45 @@ function Dashboard({ user, onLogout }) {
   const [editingSnippet, setEditingSnippet] = useState(null);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'scroll'
 
-  // Fetch snippets from the API
+  // ... (All other functions: loadSnippets, handleOpenCreate, etc. are THE SAME)
+  // ... (No changes to handleSave or handleDelete either)
+
   const loadSnippets = async () => {
     try {
-      setLoading(true);
-      setError('');
+      setLoading(true); setError('');
       const response = await getSnippets();
       setSnippets(response.data);
     } catch (err) {
-      setError('Failed to fetch snippets. Please try again.');
+      setError('Failed to fetch snippets.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Load snippets when the component first mounts
-  useEffect(() => {
-    loadSnippets();
-  }, []);
-
-  // --- Modal Handlers ---
-
-  const handleOpenCreate = () => {
-    setEditingSnippet(null); // 'null' signifies a new snippet
-    setShowModal(true);
-  };
-
-  const handleOpenEdit = (snippet) => {
-    setEditingSnippet(snippet);
-    setShowModal(true);
-  };
-
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setEditingSnippet(null);
-  };
-
-  // --- API Handlers ---
-
+  useEffect(() => { loadSnippets(); }, []);
+  const handleOpenCreate = () => { setEditingSnippet(null); setShowModal(true); };
+  const handleOpenEdit = (snippet) => { setEditingSnippet(snippet); setShowModal(true); };
+  const handleCloseModal = () => { setShowModal(false); setEditingSnippet(null); };
   const handleSave = async (snippetData) => {
     try {
       if (snippetData.id) {
-        // Update existing snippet
         const { id, ...dataToUpdate } = snippetData;
         await updateSnippet(id, dataToUpdate);
       } else {
-        // Create new snippet
         await createSnippet(snippetData);
       }
       handleCloseModal();
-      loadSnippets(); // Refresh the list
-    } catch (err) {
-      setError('Failed to save snippet.');
-    }
+      loadSnippets();
+    } catch (err) { setError('Failed to save snippet.'); }
   };
-
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this snippet?')) {
+    if (window.confirm('Are you sure?')) {
       try {
         await deleteSnippet(id);
-        loadSnippets(); // Refresh the list
-      } catch (err) {
-        setError('Failed to delete snippet.');
-      }
+        loadSnippets();
+      } catch (err) { setError('Failed to delete snippet.'); }
     }
   };
-
-  // --- View Rendering ---
 
   // This function decides which layout to render
   const renderSnippets = () => {
@@ -122,8 +94,9 @@ function Dashboard({ user, onLogout }) {
 
     // Render Scroll View
     if (viewMode === 'scroll') {
+      // 2. USE THE NEW COMPONENT HERE
       return (
-        <InfiniteSnippetScroll
+        <SnippetCarousel
           snippets={snippets}
           onEdit={handleOpenEdit}
           onDelete={handleDelete}
@@ -131,8 +104,6 @@ function Dashboard({ user, onLogout }) {
       );
     }
   };
-
-  // --- Main Component Return ---
 
   return (
     <>
@@ -150,8 +121,6 @@ function Dashboard({ user, onLogout }) {
         </div>
 
         {error && <p className="text-red-400 text-center mb-4">{error}</p>}
-
-        {/* This renders the correct view based on viewMode */}
         {renderSnippets()}
       </div>
 
